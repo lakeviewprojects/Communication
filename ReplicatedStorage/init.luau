@@ -2,15 +2,46 @@
     Events:
     Client Server communication manager. 
 
+    Generic API: 
+
+    - Create a callback handler
+    Handle:New(Name : String, Callback : Function? Event?)
+
+
+    Server API: 
+    
+    Call an event locally (on server)
+    Handle:Run(EventName? FunctionName?, arg1, arg2, arg3, arg..., argn)
+    
+    - Send an event to a player 
+    Handle:Set(PlayerInstance, EventName, arg1, arg2, arg3, arg..., argn)
+
+    - Send and receive a request to a player
+    Result = Handle:Get(PlayerInstance, FunctionName, arg1, arg2, arg3, arg..., argn)
+
+    
+    Client API: 
+    
+    Call an event locally (on cient)
+    Handle:Run(EventName? FunctionName?, arg1, arg2, arg3, arg..., argn)
+
+    - Send an event to the server
+    Handle:Set(EventName, arg1, arg2, arg3, arg..., argn)
+
+    - Send and receive a request to the server
+    Result = Handle:Get(FunctionName, arg1, arg2, arg3, arg..., argn)
+    
 --]]
 
 local RunService = game:GetService("RunService")
-
 local RemoteEvent, RemoteFunction 
 
 --[[ API Definitions ]]
-local Handle = {}
+local Handle = {
+    _handles = {}
+}
 
+--[[ Handle Constructor
 function Handle:Construct()
     local o = {}
     setmetatable(o, {__index = self})
@@ -19,12 +50,16 @@ function Handle:Construct()
 
     return o 
 end
+--]]
 
 function Handle:New(Name : String, New : Callback)
+    if self:Callback(Name) ~= nil then 
+        warn(Name,"callback was overridden!")
+    end
     self._handles[Name] = New 
 end
 
-function Handle:Get(Name : String) : Callback 
+function Handle:Callback(Name : String) : Callback 
     return self._handles[Name]
 end
 
@@ -32,18 +67,16 @@ if RunService:IsServer() == true then
     --[[ Server ]]
 
     function Handle:Run(Player : PlayerInstance, Name : String, ... : Args) : Any
-        local _callback = self:Get(Name)
+        local _callback = self:Callback(Name)
         if _callback ~= nil then 
             return _callback(Player, ...)
         else 
-            warn("[Server] No callback for",Name,"Called by",Player,"with arguments",...)
+            warn("[Server] No callback for",Name,"called by",Player,"with arguments",...)
         end
         --
         return nil -- Default
     end
-    --
-    local Event,Function = Handle:Construct(), Handle:Construct()
-
+    
     -- Remote Events 
     RemoteEvent = script:FindFirstChild("RemoteEvent") or Instance.new("RemoteEvent", script)
     
@@ -53,8 +86,8 @@ if RunService:IsServer() == true then
     end
     
     -- Handle events from clients
-    RemoteEvent.OnServerEvent:Connect(function(Player : PlayerInstance, Event : String, ... : Args)
-        Event:Run(Player, Event, ...)
+    RemoteEvent.OnServerEvent:Connect(function(Player : PlayerInstance, Name : String, ... : Args)
+        Handle:Run(Player, Name, ...)
     end)
 
     -- Remote Functions (Events with return parameters)
@@ -66,10 +99,10 @@ if RunService:IsServer() == true then
     end
 
     -- Handle requests from clients
-    RemoteFunction.OnServerInvoke = function(Player : PlayerInstance, Function : String, ... : Args) : Any
-        local result = Function:Run(Player, Function, ...)
+    RemoteFunction.OnServerInvoke = function(Player : PlayerInstance, Name : String, ... : Args) : Any
+        local result = Handle:Run(Player, Name, ...)
         if result == nil then 
-            warn("[Server] Function",Function,"did not return any result (nil). If this is intentional, please ignore this message. Called by ",Player)
+            warn("[Server] Function",Name,"did not return any result (nil). If this is intentional, please ignore this message. Called by ",Player)
         end
         --
         return result 
@@ -79,7 +112,7 @@ else
     --[[ Client ]]
 
     function Handle:Run(Name : String, ... : Args) : Any
-        local _callback = self:Get(Name)
+        local _callback = self:Callback(Name)
         if _callback ~= nil then 
             return _callback(...)
         else 
@@ -89,9 +122,6 @@ else
         return nil -- Default
     end
 
-    --
-    local Event,Function = Handle:Construct(), Handle:Construct()
-
     RemoteEvent = script:WaitForChild("RemoteEvent", 1)
     
     -- Send events to the server
@@ -100,8 +130,8 @@ else
     end
 
     -- Handle events from the server
-    RemoteEvent.OnClientEvent:Connect(function(Event : String, ... : Args)
-        Event:Run(Event, ...)
+    RemoteEvent.OnClientEvent:Connect(function(Name : String, ... : Args)
+        Handle:Run(Name, ...)
     end)
 
     RemoteFunction = script:WaitForChild("RemoteFunction", 1)
@@ -112,10 +142,10 @@ else
     end
     
     -- Handle requests from the server
-    RemoteFunction.OnClientInvoke = function(Function : String, ... : Args) : Any 
-        local result = Function:Run(Function, ...)
+    RemoteFunction.OnClientInvoke = function(Name : String, ... : Args) : Any 
+        local result = Handle:Run(Name, ...)
         if result == nil then 
-            warn("[Client] Function",Function,"did not return any result (nil). If this is intentional, please ignore this message. Called by ",Player)
+            warn("[Client] Function",Name,"did not return any result (nil). If this is intentional, please ignore this message.")
         end
         --
         return result 
