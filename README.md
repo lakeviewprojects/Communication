@@ -65,3 +65,20 @@ local result = Communication:Get("Ping", tick())
 print("Got",result,"ms")
 
 ```
+
+### Rojo file
+
+```json
+"ReplicatedStorage": {
+    "$ignoreUnknownInstances": true,
+
+    "Communication": {
+        "$ignoreUnknownInstances": true,
+        "$path":"Communication/ReplicatedStorage/"
+    },
+
+    "$path": {
+        "$ignoreUnknownInstances": true,
+        "$path":"src/ReplicatedStorage/"
+    }
+}
