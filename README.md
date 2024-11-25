@@ -11,7 +11,7 @@ Generic API:
 
 Server API: 
 
-Call an event locally (on server)
+- Call an event locally (on server)
 
 >Handle:Run(EventName? FunctionName?, arg1, arg2, arg3, arg..., argn)
 
@@ -26,7 +26,7 @@ Call an event locally (on server)
 
 Client API: 
 
-Call an event locally (on cient)
+- Call an event locally (on cient)
 
 >Handle:Run(EventName? FunctionName?, arg1, arg2, arg3, arg..., argn)
 
