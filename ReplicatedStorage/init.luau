@@ -46,14 +46,26 @@ if RunService:IsServer() == true then
 
     -- Remote Events 
     RemoteEvent = script:FindFirstChild("RemoteEvent") or Instance.new("RemoteEvent", script)
-    --
+    
+    -- Send events to clients
+    function Handle:Set(Player : PlayerInstance, EventName : String, ... : Args)
+        RemoteEvent:FireClient(Player, EventName, ...)        
+    end
+    
+    -- Handle events from clients
     RemoteEvent.OnServerEvent:Connect(function(Player : PlayerInstance, Event : String, ... : Args)
         Event:Run(Player, Event, ...)
     end)
 
     -- Remote Functions (Events with return parameters)
     RemoteFunction = script:FindFirstChild("RemoteFunction") or Instance.new("RemoteFunction", script)
-    --
+    
+    -- Get information from clients
+    function Handle:Get(Player : PlayerInstance, FunctionName : String, ... : Args) : Any 
+        return RemoteFunction:InvokeClient(Player, FunctionName, ...)
+    end
+
+    -- Handle requests from clients
     RemoteFunction.OnServerInvoke = function(Player : PlayerInstance, Function : String, ... : Args) : Any
         local result = Function:Run(Player, Function, ...)
         if result == nil then 
@@ -81,13 +93,25 @@ else
     local Event,Function = Handle:Construct(), Handle:Construct()
 
     RemoteEvent = script:WaitForChild("RemoteEvent", 1)
-    --
+    
+    -- Send events to the server
+    function Handle:Set(EventName : String, ... : Args)
+        RemoteEvent:FireServer(EventName, ...)
+    end
+
+    -- Handle events from the server
     RemoteEvent.OnClientEvent:Connect(function(Event : String, ... : Args)
         Event:Run(Event, ...)
     end)
 
     RemoteFunction = script:WaitForChild("RemoteFunction", 1)
-    --
+
+    -- Send requests to the server
+    function Handle:Get(FunctionName : String, ... : Args) : Any 
+        return RemoteFunction:InvokeServer(FunctionName, ...)
+    end
+    
+    -- Handle requests from the server
     RemoteFunction.OnClientInvoke = function(Function : String, ... : Args) : Any 
         local result = Function:Run(Function, ...)
         if result == nil then 
@@ -96,10 +120,6 @@ else
         --
         return result 
     end
-
 end 
 
-
-
-
-
+return Handle
